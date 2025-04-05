@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  push:
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-22.04
+
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      matrix:
+        compiler: [g++]
+    
+    steps:
+    - name: Update Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -yq valgrind
+
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: ./autoconfig.sh ${{matrix.compiler}}
+
+    - name: Test
+      run: |
+        ctest --test-dir ./build/tests
+    
+    - name: Results
+      run: |
+        cat ./build/tests/Testing/Temporary/LastTest.log
