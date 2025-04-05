@@ -11,3 +11,4 @@ export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:../build-Catch2/install
 cmake -S . -B ./build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_COMPILER=$ARG1
+cmake --build ./build -j$(nproc)
