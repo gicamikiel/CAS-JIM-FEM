@@ -2,8 +2,8 @@ BUILD_TYPE=${1:-Release}
 CXX_COMPILER=${2:-g++}
 # Backend choices, defaults are for CCI
 # https://kokkos.org/kokkos-core-wiki/get-started/configuration-guide.html#keywords-backends
-HOST_BACKEND=${3:THREADS}
-DEVICE_BACKEND=${4:CUDA}
+HOST_BACKEND=${3:-THREADS}
+DEVICE_BACKEND=${4:-CUDA}
 
 if [ ! -d ../build-Catch2 ]; then
     git clone https://github.com/catchorg/Catch2 ../Catch2

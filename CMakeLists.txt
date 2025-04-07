@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.0)
+cmake_minimum_required(VERSION 3.20.0)
 project(cas_fem_jim CXX)
 
 find_package(Catch2 3 REQUIRED)
