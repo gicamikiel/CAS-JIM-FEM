@@ -1,18 +1,18 @@
-# Assignment 2
+# Assignment 2 - FEM Solver
 
-How to download Gmsh SDK in WSL
+by Jay Gaiardelli, Ickbum Kim, Mikel Gica
 
+## Build Instructions
 
-Go to parent directory
-```bash
-mkdir downloads
-cd downloads
-wget https://gmsh.info/bin/Linux/gmsh-4.13.1-Linux64.tgz
-
-mkdir -p ~/gmsh
-tar -xvzf gmsh-4.13.1-Linux64.tgz
-
+To build on an appropriate CCI node, first run the following.
 ```
+module load cmake
+module load gcc
+module load spectrum-mpi
+module load cuda/11.2
+```
+If not on CCI, follow the appropriate steps to setup CMake and parallelism.
 
+To configure and compile, run `autoconfig.sh`.
 
-Jay Gaiardelli, Ickbum Kim, Mikel Gica
+To compile without configuring, run `cmake --build build -j$(nproc)`.
