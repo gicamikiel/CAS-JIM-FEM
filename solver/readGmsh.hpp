@@ -2,7 +2,15 @@
 #define READ_GMSH
 #include <vector>
 #include <string>
+#include <Kokkos_Core.hpp>
 
+struct GmshDataKokkos {
+    Kokkos::View<double**> nodeCoords;
+    Kokkos::View<std::size_t*> nodeTags;
+    Kokkos::View<std::size_t*[3]> triangles;
+    Kokkos::View<std::size_t*[4]> quadrangles;
+};
+/* 
 struct Node {
     std::size_t tag;
     double x, y, z;
@@ -22,8 +30,8 @@ struct GmshData{
     std::vector<Node> nodes;
     std::vector<Triangle> triangles;
     std::vector<Quadrangle> quadrangles;
-};
+}; */
 
-GmshData readGmsh(const std::string& filepath);
+GmshDataKokkos readGmsh(const std::string& filepath);
 
 #endif
