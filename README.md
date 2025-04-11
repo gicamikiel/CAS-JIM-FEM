@@ -24,3 +24,11 @@ for systems with no working CUDA support, run (for example):
 `./autoconfig.sh DEBUG g++ THREADS NOCUDA`
 
 To compile without configuring, run `cmake --build build -j$(nproc)`.
+
+## Testing
+
+To run tests manually, run the following from the root directory.
+
+`ctest --test-dir ./build/tests`
+
+**Note:** To test new features, please prefer to implement a Catch2 test instead of a main function.
