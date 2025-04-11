@@ -5,10 +5,12 @@
 // Tests for Gmsh reading
 TEST_CASE("test if readGmsh creates any elements") {
     // TODO: this is a stub, please add to this
-    // This actually does not work but commenting out so branches from main won't inherit this failed test
-    /*
-    std::string path = "../../dataset/bun_zipper_res4";
-    GmshDataKokkos data = readGmsh(path);
-    */
+    int argc = 0;
+    Kokkos::initialize(argc, nullptr);
+    {
+        std::string path = "../../dataset/bun_zipper_res4";
+        GmshDataKokkos data = readGmsh(path);
+    }
+    Kokkos::finalize();
     REQUIRE(true);
 }
