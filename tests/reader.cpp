@@ -9,6 +9,6 @@ TEST_CASE("test if readGmsh creates any elements") {
     /*
     std::string path = "../../dataset/bun_zipper_res4";
     GmshDataKokkos data = readGmsh(path);
-    /*
+    */
     REQUIRE(true);
 }
