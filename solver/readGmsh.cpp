@@ -18,6 +18,7 @@ GmshData readGmsh(const std::string& filepath) {
 
     while (std::getline(file, line)){
         if (line == "$Nodes\r"){
+            
             std::getline(file,line); // get first line after nodes
             std::istringstream blk(line);
             std::size_t numEntityBlocks, numNodes, minNodeTag, maxNodeTag;

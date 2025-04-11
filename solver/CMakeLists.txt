@@ -6,4 +6,4 @@ target_link_libraries(solver PRIVATE Kokkos::kokkos)
 
 add_executable(main main.cpp)
 target_link_libraries(main PUBLIC solver)
-target_include_directories(main PUBLIC ${CMAKE_CURRENT_LIST_DIR}))
+target_include_directories(main PUBLIC ${CMAKE_CURRENT_LIST_DIR})
