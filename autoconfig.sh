@@ -7,6 +7,7 @@ DEVICE_BACKEND=${4:-CUDA}
 
 if [ ! -d ../build-Catch2 ]; then
     git clone https://github.com/catchorg/Catch2 ../Catch2
+    rm -rf ../build/Catch2
     cmake -S ../Catch2 -B ../build/Catch2 \
         -DBUILD_TESTING=OFF \
         -DCMAKE_INSTALL_PREFIX=../build-Catch2/install/
@@ -22,6 +23,7 @@ if [ ! -d ../build-Kokkos ]; then
     grep kokkos-${KOKKOS_VERSION}.tar.gz kokkos-${KOKKOS_VERSION}-SHA-256.txt | shasum -c
     tar -xzvf kokkos-${KOKKOS_VERSION}.tar.gz
     cd -
+    rm -rf ../build/Kokkos
     cmake -S ../kokkos-${KOKKOS_VERSION} -B ../build/Kokkos \
         -DBUILD_TESTING=OFF \
         -DKokkos_ENABLE_$HOST_BACKEND=ON \
