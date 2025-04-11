@@ -15,28 +15,12 @@ If not on CCI, follow the appropriate steps to setup CMake and parallelism.
 
 To configure and compile, run `autoconfig.sh`.
 
+`autoconfig.sh` has parameters `autoconfig.sh <CMAKE_BUILD_TYPE> <CMAKE_CXX_COMPILER> <HOST_BACKEND> <DEVICE_BACKEND>`.
+
+where `<CMAKE_BUILD_TYPE>` is the CMake build type (e.g. `Debug`); `<CMAKE_CXX_COMPILER>` is the C++ compiler (e.g. `g++`); `<HOST_BACKEND>` and `<DEVICE_BACKEND>` are [valid Kokkos backends](https://kokkos.org/kokkos-core-wiki/get-started/configuration-guide.html#keywords-backends) (e.g. to use `Kokkos_ENABLE_CUDA` to `ON` set `<DEVICE_BACKEND>` to `CUDA`).
+
+for systems with no working CUDA support, run (for example):
+
+`./autoconfig.sh DEBUG g++ THREADS NOCUDA`
+
 To compile without configuring, run `cmake --build build -j$(nproc)`.
-
-## CMake instructions
-
-To configure:
-
-```bash
-mkdir build
-cd build
-cmake .. \
-  -DCMAKE_PREFIX_PATH="$HOME/catch2-install;$HOME/kokkos-install"
-```
-
-This will configure kokkos and catch2. Then you can build,
-
-```bash
-cmake ..
-make
-```
-
-To run main
-
-```bash
-./main
-```
