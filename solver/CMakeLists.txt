@@ -1,5 +1,10 @@
-add_library(solver mesh.cpp)
+add_library(solver readGmsh.cpp)
+
+# Include current dir for solver headers
 target_include_directories(solver PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
-target_link_libraries(solver PUBLIC math_utils)
-target_link_libraries(solver PRIVATE Kokkos::kokkos)
+# Link solver to math_utils and Kokkos
+target_link_libraries(solver
+    PUBLIC math_utils
+    PRIVATE Kokkos::kokkos
+)

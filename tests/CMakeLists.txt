@@ -1,6 +1,7 @@
-add_executable(unit_tests linalg.cpp)
+add_executable(unit_tests linalg.cpp reader.cpp)
+
 target_link_libraries(unit_tests PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(unit_tests PUBLIC solver)
+target_link_libraries(unit_tests PRIVATE solver)
 target_link_libraries(unit_tests PRIVATE Kokkos::kokkos)
 
 include(CTest)
