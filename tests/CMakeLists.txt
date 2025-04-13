@@ -1,4 +1,4 @@
-add_executable(unit_tests linalg.cpp reader.cpp)
+add_executable(unit_tests linalg.cpp reader.cpp shapeFunctions.cpp)
 
 target_link_libraries(unit_tests PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(unit_tests PRIVATE solver)
