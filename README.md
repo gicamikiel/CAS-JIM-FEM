@@ -34,7 +34,7 @@ Use the following example CMake command to configure. Use if you have Kokkos and
 
 ```
 cmake -S . -B ./build \
-    -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+    -DCMAKE_BUILD_TYPE=DEBUG \
     -DCatch2_ROOT=<Catch2 Install Path> \
     -DKokkos_ROOT=<Kokkos Install Path> \
     -DKokkos_ENABLE_THREADS=ON \
