@@ -3,24 +3,30 @@
 
 #include <element.hpp>
 
-enum CoordinateParametric {
-    NONE = 0,
-    XI = 1,
-    ETA = 2
-};
-
 class FirstOrderQuad : public FiniteElement {
     public:
         int getNumNodes() const override;
-
-        double getXi(int idx) const;
-        double getEta(int idx) const;
-        double shape(int idx, double xi, double eta) const;
-        double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
+        double getXi(int idx) const override;
+        double getEta(int idx) const override;
+        double shape(int idx, double xi, double eta) const override;
+        double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const override;
 
     private:
         double parXi[4] = {-1, 1, 1, -1};
         double parEta[4] = {-1, -1, 1, 1};
+};
+
+class FirstOrderTri : public FiniteElement {
+    public:
+        int getNumNodes() const override;
+        double getXi(int idx) const override;
+        double getEta(int idx) const override;
+        double shape(int idx, double xi, double eta) const override;
+        double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const override;
+
+    private:
+        double parXi[3] = {0, 1, 0};
+        double parEta[3] = {0, 0, 1};
 };
 
 #endif
