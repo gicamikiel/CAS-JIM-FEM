@@ -5,13 +5,14 @@
 #include <cmath>
 
 #include <elementsFirstOrder.hpp>
+#include <quadratureRules.hpp>
 
 using namespace Catch::Matchers;
 
 #ifdef KOKKOS_ENABLE_CUDA
 TEST_CASE("Test if class members are callable from the GPU") {
-    FiniteElement<FirstOrderQuad> quad;
-    FiniteElement<FirstOrderTri> tri;
+    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+    FiniteElement<FirstOrderTri, TwoPointGaussLegendre> tri;
 
     int dummy = 0;
     Kokkos::parallel_reduce("test-quad-parallelizable", 1, KOKKOS_LAMBDA (const int i, int& count) {
@@ -24,7 +25,7 @@ TEST_CASE("Test if class members are callable from the GPU") {
 // FirstOrderQuad
 
 TEST_CASE("N_n is 1 at node n and all other N_i are 0 (quads)") {
-    FiniteElement<FirstOrderQuad> quad;
+    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
 
     int node = GENERATE(0, 1, 2, 3);
     int function = GENERATE(0, 1, 2, 3);
@@ -37,7 +38,7 @@ TEST_CASE("N_n is 1 at node n and all other N_i are 0 (quads)") {
 }
 
 TEST_CASE("check N_n derivatives consistent with N_n using finite difference approximations (quads)") {
-    FiniteElement<FirstOrderQuad> quad;
+    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
 
     int function = GENERATE(0, 1, 2, 3);
     double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
@@ -60,7 +61,7 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
 // FirstOrderTri
 
 TEST_CASE("N_n is 1 at node n and all other N_i are 0 (tri)") {
-    FiniteElement<FirstOrderTri> tri;
+    FiniteElement<FirstOrderTri, TwoPointGaussLegendre> tri;
 
     int node = GENERATE(0, 1, 2);
     int function = GENERATE(0, 1, 2);
@@ -73,7 +74,7 @@ TEST_CASE("N_n is 1 at node n and all other N_i are 0 (tri)") {
 }
 
 TEST_CASE("check N_n derivatives consistent with N_n using finite difference approximations (tri)") {
-    FiniteElement<FirstOrderTri> tri;
+    FiniteElement<FirstOrderTri, TwoPointGaussLegendre> tri;
 
     int function = GENERATE(0, 1, 2);
     double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));

@@ -9,8 +9,11 @@ enum CoordinateParametric {
     ETA = 2
 };
 
-template <typename ElmType>
-class FiniteElement : public ElmType {
+// Use templates instead of virtual functions as vtables are ill-behaved in the GPU
+// see https://kokkos.org/kokkos-core-wiki/ProgrammingGuide/Kokkos-and-Virtual-Functions.html
+
+template <typename ElmType, typename IntRule>
+class FiniteElement : public ElmType, public IntRule {
     public:
         // Definitions must be here because of how templates work
 
