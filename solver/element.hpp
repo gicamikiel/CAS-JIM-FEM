@@ -21,22 +21,27 @@ class FiniteElement {
 
         // INTERFACE FUNCTIONS
         
+        KOKKOS_FUNCTION
         int getNumNodes() const {
             return static_cast<T*>(this)->getNumNodes(); 
         };
 
+        KOKKOS_FUNCTION
         double getXi(int idx) const { 
             return static_cast<T*>(this)->getXi(idx); 
         };
 
+        KOKKOS_FUNCTION
         double getEta(int idx) const {
             return static_cast<T*>(this)->getEta(idx);
         };
 
+        KOKKOS_FUNCTION
         double shape(int idx, double xi, double eta) const {
             return static_cast<T*>(this)->shape(idx, xi, eta);
         };
 
+        KOKKOS_FUNCTION
         double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const {
             return static_cast<T*>(this)->shape(idx, xi, eta, dim);
         };
@@ -44,11 +49,13 @@ class FiniteElement {
 
         // MATH AND BOOK-KEEPING
 
-        int getGlobalRow() const;
+        KOKKOS_FUNCTION int getGlobalRow() const;
 
-        int getGlobalCol() const;
+        KOKKOS_FUNCTION int getGlobalCol() const;
 
-        double computeMatrixEntry() const;
+        KOKKOS_FUNCTION double computeMatrixEntry() const {
+            return 0;
+        }
 
     protected:
         KOKKOS_INLINE_FUNCTION FiniteElement() = default;

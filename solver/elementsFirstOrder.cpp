@@ -9,18 +9,22 @@ For a quad, assume the following node arrangement
 0--1  --> xi
 */
 
+KOKKOS_FUNCTION
 int FirstOrderQuad::getNumNodes() const {
     return 4;
 }
 
+KOKKOS_FUNCTION
 double FirstOrderQuad::getXi(int node) const {
     return parXi[node];
 } 
 
+KOKKOS_FUNCTION
 double FirstOrderQuad::getEta(int node) const {
     return parEta[node];
 }
 
+KOKKOS_FUNCTION
 double FirstOrderQuad::shape(int node, double xi, double eta) const {
     switch(node) {
         case 0:
@@ -32,9 +36,10 @@ double FirstOrderQuad::shape(int node, double xi, double eta) const {
         case 3:
             return 0.25*(1-xi)*(1+eta);
     }
-    throw std::invalid_argument("invalid shape function subscript (local node number).");
+    return 0;
 }
 
+KOKKOS_FUNCTION
 double FirstOrderQuad::shapeD(int node, double xi, double eta, CoordinateParametric dim) const {
     switch(node) {
         case 0:
@@ -66,7 +71,7 @@ double FirstOrderQuad::shapeD(int node, double xi, double eta, CoordinateParamet
                     return 0.25*(1-xi)*+1;
             }
     }
-    throw std::invalid_argument("invalid shape function subscript (local node number) or coordinate.");
+    return 0;
 }
 
 // FirstOrderTri
@@ -78,10 +83,12 @@ double FirstOrderQuad::shapeD(int node, double xi, double eta, CoordinateParamet
 0----2  --> xi
 */
 
+KOKKOS_FUNCTION
 int FirstOrderTri::getNumNodes() const {
     return 3;
 }
 
+KOKKOS_FUNCTION
 double FirstOrderTri::getXi(int node) const {
     return parXi[node];
 }
@@ -90,6 +97,7 @@ double FirstOrderTri::getEta(int node) const {
     return parEta[node];
 }
 
+KOKKOS_FUNCTION
 double FirstOrderTri::shape(int node, double xi, double eta) const {
     switch(node) {
         case 0:
@@ -99,9 +107,10 @@ double FirstOrderTri::shape(int node, double xi, double eta) const {
         case 2: 
             return eta;
     }
-    throw std::invalid_argument("invalid shape function subscript (local node number).");
+    return 0;
 }
 
+KOKKOS_FUNCTION
 double FirstOrderTri::shapeD(int node, double xi, double eta, CoordinateParametric dim) const {
     switch(node) {
         case 0:
@@ -121,5 +130,5 @@ double FirstOrderTri::shapeD(int node, double xi, double eta, CoordinateParametr
                     return 1;
             }
     }
-    throw std::invalid_argument("invalid shape function subscript (local node number) or coordinate.");
+    return 0;
 }

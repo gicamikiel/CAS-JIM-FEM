@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include <functional>
+#include <Kokkos_Core.hpp>
 #include <cmath>
 
 #include <elementsFirstOrder.hpp>
@@ -44,6 +44,20 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
     REQUIRE_THAT(numericEta, WithinRel(analyticEta));
 }
 
+#ifdef KOKKOS_ENABLE_CUDA
+TEST_CASE("Test if class members can be parallelized on the GPU without error (quad)") {
+    const int nelm = 10;
+    int total = 0;
+    Kokkos::View<FirstOrderQuad[nelm], Kokkos::CudaSpace> elements("elements_test");
+    Kokkos::parallel_reduce("test-quad-parallelizable", nelm, KOKKOS_LAMBDA (const int i, int& count) {
+        auto element = elements(i);
+        count += element.getNumNodes();
+        element.computeMatrixEntry();
+    }, total);
+    REQUIRE(total == nelm*4);
+}
+#endif
+
 // FirstOrderTri
 
 TEST_CASE("N_n is 1 at node n and all other N_i are 0 (tri)") {
@@ -79,3 +93,17 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
     REQUIRE_THAT(analyticXi, WithinRel(numericXi));
     REQUIRE_THAT(numericEta, WithinRel(analyticEta));
 }
+
+#ifdef KOKKOS_ENABLE_CUDA
+TEST_CASE("Test if class members can be parallelized on the GPU without error (tri)") {
+    const int nelm = 10;
+    int total = 0;
+    Kokkos::View<FirstOrderTri[nelm], Kokkos::CudaSpace> elements("elements_test");
+    Kokkos::parallel_reduce("test-quad-parallelizable", nelm, KOKKOS_LAMBDA (const int i, int& count) {
+        auto element = elements(i);
+        count += element.getNumNodes();
+        element.computeMatrixEntry();
+    }, total);
+    REQUIRE(total == nelm*3);
+}
+#endif

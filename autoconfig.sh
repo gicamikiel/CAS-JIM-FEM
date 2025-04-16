@@ -28,6 +28,7 @@ if [ ! -d ../Kokkos-install ]; then
         -DBUILD_TESTING=OFF \
         -DKokkos_ENABLE_$HOST_BACKEND=ON \
         -DKokkos_ENABLE_$DEVICE_BACKEND=ON \
+        -DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON \
         -DCMAKE_INSTALL_PREFIX=../Kokkos-install/
     cmake --build ../build/Kokkos -j$(nproc) --target install
 fi

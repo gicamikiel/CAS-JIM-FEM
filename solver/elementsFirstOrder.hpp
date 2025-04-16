@@ -5,11 +5,11 @@
 
 class FirstOrderQuad : public FiniteElement<FirstOrderQuad> {
     public:
-        int getNumNodes() const;
-        double getXi(int idx) const;
-        double getEta(int idx) const;
-        double shape(int idx, double xi, double eta) const;
-        double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
+        KOKKOS_FUNCTION int getNumNodes() const;
+        KOKKOS_FUNCTION double getXi(int idx) const;
+        KOKKOS_FUNCTION double getEta(int idx) const;
+        KOKKOS_FUNCTION double shape(int idx, double xi, double eta) const;
+        KOKKOS_FUNCTION double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
 
     private:
         double const parXi[4] = {-1, 1, 1, -1};
@@ -18,11 +18,11 @@ class FirstOrderQuad : public FiniteElement<FirstOrderQuad> {
 
 class FirstOrderTri : public FiniteElement<FirstOrderTri> {
     public:
-        int getNumNodes() const;
-        double getXi(int idx) const;
-        double getEta(int idx) const;
-        double shape(int idx, double xi, double eta) const;
-        double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
+        KOKKOS_FUNCTION int getNumNodes() const;
+        KOKKOS_FUNCTION double getXi(int idx) const;
+        KOKKOS_FUNCTION double getEta(int idx) const;
+        KOKKOS_FUNCTION double shape(int idx, double xi, double eta) const;
+        KOKKOS_FUNCTION double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
 
     private:
         double const parXi[3] = {0, 1, 0};
