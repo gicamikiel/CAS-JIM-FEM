@@ -3,30 +3,22 @@
 
 #include <element.hpp>
 
-class FirstOrderQuad : public FiniteElement<FirstOrderQuad> {
-    public:
-        KOKKOS_FUNCTION int getNumNodes() const;
-        KOKKOS_FUNCTION double getXi(int idx) const;
-        KOKKOS_FUNCTION double getEta(int idx) const;
-        KOKKOS_FUNCTION double shape(int idx, double xi, double eta) const;
-        KOKKOS_FUNCTION double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
+struct FirstOrderQuad {
+    int const numNodes = 4;
+    double const parXi[4] = {-1, 1, 1, -1};
+    double const parEta[4] = {-1, -1, 1, 1};
 
-    private:
-        double const parXi[4] = {-1, 1, 1, -1};
-        double const parEta[4] = {-1, -1, 1, 1};
+    KOKKOS_FUNCTION double shape(int node, double xi, double eta) const;
+    KOKKOS_FUNCTION double shapeD(int node, double xi, double eta, CoordinateParametric dim) const;
 };
 
-class FirstOrderTri : public FiniteElement<FirstOrderTri> {
-    public:
-        KOKKOS_FUNCTION int getNumNodes() const;
-        KOKKOS_FUNCTION double getXi(int idx) const;
-        KOKKOS_FUNCTION double getEta(int idx) const;
-        KOKKOS_FUNCTION double shape(int idx, double xi, double eta) const;
-        KOKKOS_FUNCTION double shapeD(int idx, double xi, double eta, CoordinateParametric dim) const;
+struct FirstOrderTri {
+    int const numNodes = 4;
+    double const parXi[3] = {0, 1, 0};
+    double const parEta[3] = {0, 0, 1};
 
-    private:
-        double const parXi[3] = {0, 1, 0};
-        double const parEta[3] = {0, 0, 1};
+    KOKKOS_FUNCTION double shape(int node, double xi, double eta) const;
+    KOKKOS_FUNCTION double shapeD(int node, double xi, double eta, CoordinateParametric dim) const;
 };
 
 #endif

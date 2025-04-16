@@ -10,21 +10,6 @@ For a quad, assume the following node arrangement
 */
 
 KOKKOS_FUNCTION
-int FirstOrderQuad::getNumNodes() const {
-    return 4;
-}
-
-KOKKOS_FUNCTION
-double FirstOrderQuad::getXi(int node) const {
-    return parXi[node];
-} 
-
-KOKKOS_FUNCTION
-double FirstOrderQuad::getEta(int node) const {
-    return parEta[node];
-}
-
-KOKKOS_FUNCTION
 double FirstOrderQuad::shape(int node, double xi, double eta) const {
     switch(node) {
         case 0:
@@ -82,20 +67,6 @@ double FirstOrderQuad::shapeD(int node, double xi, double eta, CoordinateParamet
 |   \   |
 0----2  --> xi
 */
-
-KOKKOS_FUNCTION
-int FirstOrderTri::getNumNodes() const {
-    return 3;
-}
-
-KOKKOS_FUNCTION
-double FirstOrderTri::getXi(int node) const {
-    return parXi[node];
-}
-
-double FirstOrderTri::getEta(int node) const {
-    return parEta[node];
-}
 
 KOKKOS_FUNCTION
 double FirstOrderTri::shape(int node, double xi, double eta) const {
