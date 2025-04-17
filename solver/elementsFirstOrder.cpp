@@ -10,7 +10,7 @@ For a quad, assume the following node arrangement
 */
 
 KOKKOS_FUNCTION
-double FirstOrderQuad::shape(int node, double xi, double eta) const {
+double FirstOrderQuad::shape(std::size_t node, double xi, double eta) const {
     switch(node) {
         case 0:
             return 0.25*(1-xi)*(1-eta);
@@ -25,7 +25,7 @@ double FirstOrderQuad::shape(int node, double xi, double eta) const {
 }
 
 KOKKOS_FUNCTION
-double FirstOrderQuad::shapeD(int node, double xi, double eta, CoordinateParametric dim) const {
+double FirstOrderQuad::shapeD(std::size_t node, double xi, double eta, CoordinateParametric dim) const {
     switch(node) {
         case 0:
             switch(dim) {
@@ -69,7 +69,7 @@ double FirstOrderQuad::shapeD(int node, double xi, double eta, CoordinateParamet
 */
 
 KOKKOS_FUNCTION
-double FirstOrderTri::shape(int node, double xi, double eta) const {
+double FirstOrderTri::shape(std::size_t node, double xi, double eta) const {
     switch(node) {
         case 0:
             return 1-xi-eta;
@@ -82,7 +82,7 @@ double FirstOrderTri::shape(int node, double xi, double eta) const {
 }
 
 KOKKOS_FUNCTION
-double FirstOrderTri::shapeD(int node, double xi, double eta, CoordinateParametric dim) const {
+double FirstOrderTri::shapeD(std::size_t node, double xi, double eta, CoordinateParametric dim) const {
     switch(node) {
         case 0:
             return -1;
