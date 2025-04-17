@@ -16,7 +16,31 @@ class CSRMatrix {
 
         CSRMatrix(const std::vector<std::vector<double>>& matrix);
 
-        CSRMatrix(std::vector<std::pair<int, int>>& nonzero_indices, std::size_t& num_rows, std::size_t& num_cols);
+        //Constructor from array of i,j non-zero value positions
+        template<typename IndexT,typename RowCountT,typename ColCountT,typename = std::enable_if_t<std::is_integral_v<IndexT>>>
+        CSRMatrix(const std::vector<std::pair<IndexT, IndexT>>& nonzero_indices,RowCountT num_rows,ColCountT num_cols) 
+        : num_rows_(static_cast<std::size_t>(num_rows)), num_cols_(static_cast<std::size_t>(num_cols))
+        {
+            num_nz_ = nonzero_indices.size();
+
+            col_indices_host.resize(num_nz_);
+            values_host.resize(num_nz_, 1.0);
+
+            std::vector<std::pair<IndexT,IndexT>> idxs = nonzero_indices;
+            std::sort(idxs.begin(), idxs.end());
+
+            std::vector<std::size_t> row_counts(num_rows_, 0);
+            for (std::size_t i = 0; i < num_nz_; ++i) {
+                auto [r, c] = idxs[i];
+                row_counts[static_cast<std::size_t>(r)]++;
+                col_indices_host[i] = static_cast<std::size_t>(c);
+            }
+            row_ptr_host.resize(num_rows_ + 1);
+            row_ptr_host[0] = 0;
+            for (std::size_t r = 0; r < num_rows_; ++r) {
+                row_ptr_host[r+1] = row_ptr_host[r] + row_counts[r];
+            }
+        }
 
         void update_val(const std::size_t& i, const std::size_t& j, const double& val);
 

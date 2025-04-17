@@ -19,20 +19,6 @@ CSRMatrix::CSRMatrix(const std::vector<std::vector<double>>& matrix) {
     }
 }
 
-//Constructor from array of i,j non-zero value positions
-//values can be changed later with update_val
-CSRMatrix::CSRMatrix(std::vector<std::pair<int, int>>& nonzero_indices, std::size_t& num_rows, std::size_t& num_cols) 
-: num_rows_(num_rows), num_cols_(num_cols) {
-    num_nz_ = nonzero_indices.size();
-    row_ptr_host.resize(num_rows_ + 1, 0);
-    col_indices_host.resize(num_nz_);
-    values_host.resize(num_nz_,1.0);
-
-    // Sort by row-major order to prepare for CSR structure
-    std::sort(nonzero_indices.begin(), nonzero_indices.end());
-
-    //TODO: Implement the filling of the sparsity pattern
-}
 
 void CSRMatrix::copy_to_device(){
     row_ptr_ = Kokkos::View<int*>("row_ptr", row_ptr_host.size());
@@ -49,14 +35,15 @@ void CSRMatrix::copy_to_device(){
 }
 
 
-// Update a value at a specific i, j if it's a valid non-zero
+// Update a value at a specific i, j if it's a valid non-zero 
+//ONLY WORKS IF CSR HAS NOT YET BEEN COPIED TO DEVICE
 void CSRMatrix::update_val(const std::size_t& i, const std::size_t& j, const double& val) {
-    auto start = row_ptr_(i);
-    auto end   = row_ptr_(i + 1);
+    auto start = row_ptr_host[i];
+    auto end   = row_ptr_host[i + 1];
     bool found = false;
     for (int idx = start; idx < end; ++idx) {
-        if (col_indices_(idx) == j) {
-            values_(idx) = val;
+        if (col_indices_host[idx] == j) {
+            values_host[idx] = val;
             found = true;
             break;
         }
