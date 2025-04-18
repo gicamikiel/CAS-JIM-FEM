@@ -69,15 +69,15 @@ GmshDataKokkos readGmsh(const std::string& filepath) {
                     std::istringstream elem3(line);
                     if (elementType == 2) {
                         // 3-node triangle
-                        std::size_t a, b, c;
-                        elem3 >> a >> b >> c;
+                        std::size_t tag, a, b, c;
+                        elem3 >> tag >> a >> b >> c;
                         hostTriangles.push_back(a);
                         hostTriangles.push_back(b);
                         hostTriangles.push_back(c);
                     } else if (elementType == 3) {
                         // 4-node quad
-                        std::size_t a, b, c, d;
-                        elem3 >> a >> b >> c >> d;
+                        std::size_t tag, a, b, c, d;
+                        elem3 >> tag >> a >> b >> c >> d;
                         hostQuadrangles.push_back(a);
                         hostQuadrangles.push_back(b);
                         hostQuadrangles.push_back(c);
