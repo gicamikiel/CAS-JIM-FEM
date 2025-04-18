@@ -1,7 +1,8 @@
 #ifndef SOLVER_ELEMENT
 #define SOLVER_ELEMENT
 
-#include<Kokkos_Macros.hpp>
+#include <Kokkos_Macros.hpp>
+#include <cstddef>
 
 enum CoordinateParametric {
     NONE = 0,
