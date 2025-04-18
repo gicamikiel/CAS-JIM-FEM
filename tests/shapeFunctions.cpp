@@ -5,14 +5,16 @@
 #include <cmath>
 
 #include <elementsFirstOrder.hpp>
-#include <quadratureRules.hpp>
 
 using namespace Catch::Matchers;
 
+typedef FiniteElementDef<FirstOrderQuad, TwoByTwoGaussLegendre> Quad;
+typedef FiniteElementDef<FirstOrderTri, TwoByTwoGaussLegendre> Tri;
+
 #ifdef KOKKOS_ENABLE_CUDA
 TEST_CASE("Test if class members are callable from the GPU") {
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
-    FiniteElement<FirstOrderTri, TwoPointGaussLegendre> tri;
+    Quad quad;
+    Tri tri;
 
     int dummy = 0;
     Kokkos::parallel_reduce("test-quad-parallelizable", 1, KOKKOS_LAMBDA (const int i, int& count) {
@@ -25,7 +27,7 @@ TEST_CASE("Test if class members are callable from the GPU") {
 // FirstOrderQuad
 
 TEST_CASE("N_n is 1 at node n and all other N_i are 0 (quads)") {
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+    Quad quad;
 
     int node = GENERATE(0, 1, 2, 3);
     int function = GENERATE(0, 1, 2, 3);
@@ -38,7 +40,7 @@ TEST_CASE("N_n is 1 at node n and all other N_i are 0 (quads)") {
 }
 
 TEST_CASE("check N_n derivatives consistent with N_n using finite difference approximations (quads)") {
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+    Quad quad;
 
     int function = GENERATE(0, 1, 2, 3);
     double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
@@ -59,7 +61,7 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
 }
 
 TEST_CASE("check all N_n adds up to 1 (quads)") {
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+    Quad quad;
 
     double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
     double eta0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
@@ -76,7 +78,7 @@ TEST_CASE("check all N_n adds up to 1 (quads)") {
 // FirstOrderTri
 
 TEST_CASE("N_n is 1 at node n and all other N_i are 0 (tri)") {
-    FiniteElement<FirstOrderTri, TwoPointGaussLegendre> tri;
+    Tri tri;
 
     int node = GENERATE(0, 1, 2);
     int function = GENERATE(0, 1, 2);
@@ -89,7 +91,7 @@ TEST_CASE("N_n is 1 at node n and all other N_i are 0 (tri)") {
 }
 
 TEST_CASE("check N_n derivatives consistent with N_n using finite difference approximations (tri)") {
-    FiniteElement<FirstOrderTri, TwoPointGaussLegendre> tri;
+    Tri tri;
 
     int function = GENERATE(0, 1, 2);
     double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
@@ -110,7 +112,7 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
 }
 
 TEST_CASE("check all N_n adds up to 1 (tris)") {
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> tris;
+    Tri tris;
 
     double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
     double eta0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));

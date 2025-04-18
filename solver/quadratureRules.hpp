@@ -1,5 +1,11 @@
-struct TwoPointGaussLegendre {
-    std::size_t const numPoints = 2;
-    double const points[2] = {-1.0/std::sqrt(3), 1.0/std::sqrt(3)};
-    double const weight[2] = {1.0, 1.0};
+#ifndef SOLVER_QUADRATURE_RULES
+#define SOLVER_QUADRATURE_RULES
+
+struct TwoByTwoGaussLegendre {
+    std::size_t const numQuad = 4;
+    double const quadXi[4] = {1.0/std::sqrt(3), -1.0/std::sqrt(3), 1.0/std::sqrt(3), 1.0/std::sqrt(3)};
+    double const quadEta[4] = {1.0/std::sqrt(3), 1.0/std::sqrt(3), -1.0/std::sqrt(3), 1.0/std::sqrt(3)};
+    double const quadWt[4] = {1.0, 1.0, 1.0, 1.0};
 };
+
+#endif

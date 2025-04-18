@@ -4,10 +4,12 @@
 #include <cmath>
 
 #include <elementsFirstOrder.hpp>
-#include <quadratureRules.hpp>
 #include <readGmsh.hpp>
 
 using namespace Catch::Matchers;
+
+typedef FiniteElementDef<FirstOrderQuad, TwoByTwoGaussLegendre> Quad;
+typedef FiniteElementDef<FirstOrderTri, TwoByTwoGaussLegendre> Tri;
 
 TEST_CASE("Test on handwritten mesh") {
     /*
@@ -53,8 +55,9 @@ TEST_CASE("Test on handwritten mesh") {
     Kokkos::deep_copy(xCoordsElm2, xCoordsElm2_host);
     Kokkos::deep_copy(yCoordsElm2, yCoordsElm2_host);
 
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+    Quad quad;
 
+    /*
     SECTION("Evaluate Jacobian") {
         double result = 0;
         double testxi = 0;
@@ -68,56 +71,56 @@ TEST_CASE("Test on handwritten mesh") {
         CAPTURE(quad.shapeD(3, testxi, testeta, XI), quad.shapeD(3, testxi, testeta, ETA));
         REQUIRE_THAT(1, WithinRel(result));
     }
+    */
 }
 
-TEST_CASE("Test local matrix flattening") {
-    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+TEST_CASE("Check local matrix flattening") {
+    Quad quad;
 
     SECTION("Check upper triangular index") {
-        std::size_t test[2];
-        quad.localStiffnessIdx(0, test);
+        std::size_t row;
+        std::size_t col;
 
         REQUIRE(quad.uniqueStiffnessEntriesN() == 10);
-        REQUIRE(quad.integrationGridN() == 4);
         /*
         0 1 2 3
         - 4 5 6
         - - 7 8
         - - - 9
         */
-        REQUIRE(test[0] == 0); REQUIRE(test[1] == 0);
-        quad.localStiffnessIdx(1, test);
-        REQUIRE(test[0] == 0); REQUIRE(test[1] == 1);
-        quad.localStiffnessIdx(2, test);
-        REQUIRE(test[0] == 0); REQUIRE(test[1] == 2);
-        quad.localStiffnessIdx(3, test);
-        REQUIRE(test[0] == 0); REQUIRE(test[1] == 3);
-        quad.localStiffnessIdx(4, test);
-        REQUIRE(test[0] == 1); REQUIRE(test[1] == 1);
-        quad.localStiffnessIdx(5, test);
-        REQUIRE(test[0] == 1); REQUIRE(test[1] == 2);
-        quad.localStiffnessIdx(6, test);
-        REQUIRE(test[0] == 1); REQUIRE(test[1] == 3);
-        quad.localStiffnessIdx(7, test);
-        REQUIRE(test[0] == 2); REQUIRE(test[1] == 2);
-        quad.localStiffnessIdx(8, test);
-        REQUIRE(test[0] == 2); REQUIRE(test[1] == 3);
-        quad.localStiffnessIdx(9, test);
-        REQUIRE(test[0] == 3); REQUIRE(test[1] == 3);
+        quad.localStiffnessIdx(0, row, col); REQUIRE(row == 0); REQUIRE(col == 0);
+        quad.localStiffnessIdx(1, row, col); REQUIRE(row == 0); REQUIRE(col == 1);
+        quad.localStiffnessIdx(2, row, col); REQUIRE(row == 0); REQUIRE(col == 2);
+        quad.localStiffnessIdx(3, row, col); REQUIRE(row == 0); REQUIRE(col == 3);
+        quad.localStiffnessIdx(4, row, col); REQUIRE(row == 1); REQUIRE(col == 1);
+        quad.localStiffnessIdx(5, row, col); REQUIRE(row == 1); REQUIRE(col == 2);
+        quad.localStiffnessIdx(6, row, col); REQUIRE(row == 1); REQUIRE(col == 3);
+        quad.localStiffnessIdx(7, row, col); REQUIRE(row == 2); REQUIRE(col == 2);
+        quad.localStiffnessIdx(8, row, col); REQUIRE(row == 2); REQUIRE(col == 3);
+        quad.localStiffnessIdx(9, row, col); REQUIRE(row == 3); REQUIRE(col == 3);
+    }
+}
+
+// test that needs manual checking of printf output
+// run with "./build/tests/unit_tests [manual]"
+TEST_CASE("Check unwrapping", "[.manual]") {
+    Quad quad;
+
+    printf("Stiffness Unwrap\n");
+    for(std::size_t i = 0; i < quad.stiffnessEvalsN(); i++) {
+        std::size_t quadPoint;
+        std::size_t row;
+        std::size_t col;
+        quad.unwrapStiffnessN(i, quadPoint, row, col);
+        printf("%d: qp=%d r,c=(%d, %d) \n", (unsigned int)i, (unsigned int)quadPoint, (unsigned int)row, (unsigned int)col);
     }
 
-    SECTION("Check unwrapping") {
-        Kokkos::View<std::size_t*> global_tags("globalTags_test", 4);
-        auto host_globalTags = Kokkos::create_mirror_view(global_tags);
-        host_globalTags(0) = 1; 
-        host_globalTags(1) = 2;
-        host_globalTags(2) = 3;
-        host_globalTags(3) = 4; 
-        for(std::size_t i = 0; i < quad.uniqueStiffnessEntriesN(); i++) {
-            double evalPt[2];
-            std::size_t localIdx[2]; 
-            quad.unwrapStiffnessN(i, evalPt, localIdx);
-            CAPTURE(i, evalPt[0], evalPt[1], localIdx[0], localIdx[1]);
-        }
+    printf("Derivative Addend Unwrap\n");
+    for(std::size_t i = 0; i < quad.stiffnessEvalsN(); i++) {
+        std::size_t node;
+        std::size_t quadPt;
+        std::size_t derivatve;
+        quad.unwrapAddendEvalsN(i, node, quadPt, derivatve);
+        printf("%d: node=%d qp=%d derivative=%d \n", (unsigned int)i, (unsigned int)node, (unsigned int)quadPt, (unsigned int)derivatve);
     }
 }

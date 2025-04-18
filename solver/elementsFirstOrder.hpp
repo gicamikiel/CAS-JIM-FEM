@@ -2,6 +2,7 @@
 #define SOLVER_ELEMENTS_FIRST_ORDER
 
 #include <element.hpp>
+#include <quadratureRules.hpp>
 
 struct FirstOrderQuad {
     std::size_t const numNodes = 4;

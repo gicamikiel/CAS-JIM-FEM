@@ -1,9 +1,7 @@
 #ifndef SOLVER_ELEMENT
 #define SOLVER_ELEMENT
 
-#include <Kokkos_Macros.hpp>
-#include <Kokkos_Core.hpp>
-#include <iostream>
+#include<Kokkos_Macros.hpp>
 
 enum CoordinateParametric {
     NONE = 0,
@@ -15,70 +13,89 @@ enum CoordinateParametric {
 // see https://kokkos.org/kokkos-core-wiki/ProgrammingGuide/Kokkos-and-Virtual-Functions.html
 
 template <typename ElmType, typename IntRule>
-class FiniteElement : public ElmType, public IntRule {
+class FiniteElementDef : public ElmType, public IntRule {
     public:
         // Definitions must be here because of how templates work
 
+        // Functions for evaluating jacobian
+
         KOKKOS_FUNCTION
-        double computeJacobianAt(double xi, double eta, Kokkos::View<double*> xCoords, Kokkos::View<double*> yCoords) const {
-            double dx_dxi = 0;
-            double dx_deta = 0;
-            double dy_dxi = 0;
-            double dy_deta = 0;
-            for (std::size_t k=0; k<this->numNodes; k++) {
-                // create del x/del xi
-                dx_dxi += this->shapeD(k, xi, eta, XI)*xCoords(k);
-                // create del x/del eta
-                dx_deta += this->shapeD(k, xi, eta, ETA)*xCoords(k);
-                // create del y/del xi
-                dy_dxi += this->shapeD(k, xi, eta, XI)*yCoords(k);
-                // create del y/del eta
-                dy_deta += this->shapeD(k, xi, eta, ETA)*yCoords(k);
-                printf("%.2f, %.2f \n", xCoords(k), yCoords(k));
-            }
-            return dx_dxi*dy_deta-dx_deta*dy_dxi;
+        double jacAddendDelxDelXi(std::size_t node, double xi, double eta, double xa) const {
+            return this->shapeD(node, xi, eta, XI)*xa;
         }
 
-        double stiffnessIntegrand(std::size_t subA, std::size_t subB, double xi, double eta, Kokkos::View<double*> xCoords, Kokkos::View<double*> yCoords) const {
+        KOKKOS_FUNCTION
+        double jacAddendDelyDelEta(std::size_t node, double xi, double eta, double ya) const {
+            return this->shapeD(node, xi, eta, ETA)*ya;
+        }
+
+        KOKKOS_FUNCTION
+        double jacAddendDelxDelEta(std::size_t node, double xi, double eta, double xa) const {
+            return this->shapeD(node, xi, eta, ETA)*xa;
+        }
+
+        KOKKOS_FUNCTION
+        double jacAddendDelyDelXi(std::size_t node, double xi, double eta, double ya) const {
+            return this->shapeD(node, xi, eta, XI)*ya;
+        }
+
+        KOKKOS_FUNCTION
+        double jacAddendEvalsN() const {
+            return 4 * // 4 derivatives required to compute Jacobian
+                this->numNodes * // each derivative requires an addend at each node
+                this->numQuad; // need to evaluate Jacobian at quadrature points
+        }
+
+        KOKKOS_FUNCTION
+        void unwrapAddendEvalsN(std::size_t i, std::size_t &node, std::size_t &quadPt, std::size_t &derivatve) const {
+            node = i % this->numNodes;
+            quadPt = (i / this->numNodes) % this->numQuad;
+            derivatve = ((i / this->numNodes) / this->numQuad) % 4;
+        }
+
+        // Functions for evaluating stiffness matrix
+        KOKKOS_FUNCTION
+        double stiffnessIntegrand(std::size_t subA, std::size_t subB, double xi, double eta, double jac) const {
             double out = this->shapeD(subA, xi, eta, XI)*this->shapeD(subB, xi, eta, XI)
                             +this->shape(subA, xi, eta, ETA)*this->shapeD(subB, xi, eta, ETA);
-            return out/computeJacobianAt(xi, eta, xCoords, yCoords);
+            return out/jac;
         }
 
-        std::size_t stiffnessEvalsN() const {
-            return uniqueStiffnessEntriesN()*integrationGridN();
+        KOKKOS_FUNCTION
+        double stiffnessQuadEval(std::size_t subA, std::size_t subB, std::size_t quadPt, double jac) {
+            return this->quadWt[quadPt] * stiffnessIntegrand(subA, subB, this->quadXi[quadPt], this->quadEta[quadPt], jac);
         }
 
+        KOKKOS_FUNCTION
         std::size_t uniqueStiffnessEntriesN() const {
             // local stiffness matrix is symmetric so we only need to compute some of it
             // numPoints + numPoints-1 + numPoints-2 + ... + 1
             return this->numNodes*(this->numNodes+1)/2;
         }
 
-        std::size_t integrationGridN() const {
-            return this->numPoints*this->numPoints;
+        KOKKOS_FUNCTION
+        std::size_t stiffnessEvalsN() const {
+            return uniqueStiffnessEntriesN()*this->numQuad;
         }
 
-        void unwrapStiffnessN(std::size_t i, double parEvalPt[2], std::size_t localIdx[2]) const {
-            std::size_t integrationIdx = i % integrationGridN();
-            std::size_t uniqueEntryIdx = i / integrationGridN();
-
-            parEvalPt[0] = this->points[integrationIdx % this->numPoints];
-            parEvalPt[1] = this->points[integrationIdx / this->numPoints];
+        KOKKOS_FUNCTION
+        void unwrapStiffnessN(std::size_t i, std::size_t &quadPt, std::size_t &localRow, std::size_t &localCol) const {
+            std::size_t uniqueEntryIdx = i % uniqueStiffnessEntriesN();
+            quadPt = i / uniqueStiffnessEntriesN();
             
-            localStiffnessIdx(uniqueEntryIdx, localIdx);
+            localStiffnessIdx(uniqueEntryIdx, localRow, localCol);
         }
 
-        // based on https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
-        void localStiffnessIdx(std::size_t i, std::size_t idx[2]) const {
-            std::size_t row = 0;
+        KOKKOS_FUNCTION
+        // based on https://stackoverflow.com/a/242924
+        void localStiffnessIdx(std::size_t i, std::size_t &localRow, std::size_t &localCol) const {
+            localRow = 0;
             std::size_t delta = this->numNodes - 1;
             std::size_t x;
             for( x = delta; x < i; x += delta-- ){
-                row++;
+                localRow++;
             }
-            idx[0] = row;
-            idx[1] = this->numNodes + i - x - 1;
+            localCol = this->numNodes + i - x - 1;
         }
 };
 
