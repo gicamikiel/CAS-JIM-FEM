@@ -3,6 +3,7 @@
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_Core.hpp>
+#include <iostream>
 
 enum CoordinateParametric {
     NONE = 0,
@@ -33,8 +34,9 @@ class FiniteElement : public ElmType, public IntRule {
                 dy_dxi += this->shapeD(k, xi, eta, XI)*yCoords(k);
                 // create del y/del eta
                 dy_deta += this->shapeD(k, xi, eta, ETA)*yCoords(k);
+                printf("%.2f, %.2f \n", xCoords(k), yCoords(k));
             }
-            return dx_deta*dy_deta-dx_deta*dy_deta;
+            return dx_dxi*dy_deta-dx_deta*dy_dxi;
         }
 
         double stiffnessIntegrand(std::size_t subA, std::size_t subB, double xi, double eta, Kokkos::View<double*> xCoords, Kokkos::View<double*> yCoords) const {

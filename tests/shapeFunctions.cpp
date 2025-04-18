@@ -58,6 +58,21 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
     REQUIRE_THAT(numericEta, WithinRel(analyticEta));
 }
 
+TEST_CASE("check all N_n adds up to 1 (quads)") {
+    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+
+    double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
+    double eta0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
+
+    double sum = 0;
+    for(int i=0; i<quad.numNodes; i++) {
+        sum += quad.shape(i, xi0, eta0);
+    }
+
+    INFO("Point: " << xi0 << ", " << eta0);
+    REQUIRE_THAT(1.0, WithinRel(sum));
+}
+
 // FirstOrderTri
 
 TEST_CASE("N_n is 1 at node n and all other N_i are 0 (tri)") {
@@ -92,4 +107,19 @@ TEST_CASE("check N_n derivatives consistent with N_n using finite difference app
     INFO("Shape Function: " << function);
     REQUIRE_THAT(analyticXi, WithinRel(numericXi));
     REQUIRE_THAT(numericEta, WithinRel(analyticEta));
+}
+
+TEST_CASE("check all N_n adds up to 1 (tris)") {
+    FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> tris;
+
+    double xi0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
+    double eta0 = GENERATE(-1/std::sqrt(3), 1/std::sqrt(3));
+
+    double sum = 0;
+    for(int i=0; i<tris.numNodes; i++) {
+        sum += tris.shape(i, xi0, eta0);
+    }
+
+    INFO("Point: " << xi0 << ", " << eta0);
+    REQUIRE_THAT(1.0, WithinRel(sum));
 }

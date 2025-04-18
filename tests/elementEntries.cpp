@@ -7,16 +7,67 @@
 #include <quadratureRules.hpp>
 #include <readGmsh.hpp>
 
-TEST_CASE("Test Jacobian computation") {
-    int numNodes = 4;
-    Kokkos::View<std::size_t*, Kokkos::HostSpace> host_nodeTags("nodeTags_test", numNodes);
-    Kokkos::View<double**, Kokkos::HostSpace> host_nodeCoords("nodeCoords_test", numNodes, 3);
+using namespace Catch::Matchers;
 
-    host_nodeTags(0) = 1; host_nodeTags(1) = 2; host_nodeTags(2) = 3;
-    host_nodeCoords(0, 0) = -2.0; host_nodeCoords(1, 0) =  2.0; host_nodeCoords(2, 0) = 2.0; host_nodeCoords(3, 0) = -2.0;
-    host_nodeCoords(0, 1) = -2.0; host_nodeCoords(1, 1) = -2.0; host_nodeCoords(2, 1) = 2.0; host_nodeCoords(3, 1) =  2.0;
+TEST_CASE("Test on handwritten mesh") {
+    /*
+    DOF indices
+    5--4--3
+    |  |  |
+    0--1--2
+    */
+    int numNodes = 4;
+    Kokkos::View<int*> globalElm1("global_elm1_test", numNodes);
+    Kokkos::View<double*> xCoordsElm1("xcoord_elm1_test", numNodes);
+    Kokkos::View<double*> yCoordsElm1("ycoord_elm1_test", numNodes);
+
+    auto globalElm1_host = Kokkos::create_mirror_view(globalElm1);
+    auto xCoordsElm1_host = Kokkos::create_mirror_view(xCoordsElm1);
+    auto yCoordsElm1_host =Kokkos::create_mirror_view(yCoordsElm1);
+
+    globalElm1_host(3) = 5; globalElm1_host(2) = 4;
+    globalElm1_host(0) = 0; globalElm1_host(1) = 1;
+
+    xCoordsElm1_host(3) = 0; yCoordsElm1_host(3) = 2; xCoordsElm1_host(2) = 2; yCoordsElm1_host(2) = 2; 
+    xCoordsElm1_host(0) = 0; yCoordsElm1_host(0) = 0; xCoordsElm1_host(1) = 2; yCoordsElm1_host(1) = 0; 
+
+    Kokkos::deep_copy(globalElm1, globalElm1_host);
+    Kokkos::deep_copy(xCoordsElm1, xCoordsElm1_host);
+    Kokkos::deep_copy(yCoordsElm1, yCoordsElm1_host);
+
+    Kokkos::View<int*> globalElm2("global_elm2_test", numNodes);
+    Kokkos::View<double*> xCoordsElm2("xcoord_elm2_test", numNodes);
+    Kokkos::View<double*> yCoordsElm2("ycoord_elm2_test", numNodes);
+
+    auto globalElm2_host = Kokkos::create_mirror_view(globalElm2);
+    auto xCoordsElm2_host = Kokkos::create_mirror_view(xCoordsElm2);
+    auto yCoordsElm2_host =Kokkos::create_mirror_view(yCoordsElm2);
+
+    globalElm2_host(3) = 4; globalElm2_host(2) = 3;
+    globalElm2_host(0) = 1; globalElm2_host(1) = 2;
+
+    xCoordsElm2_host(3) = 2; yCoordsElm2_host(3) = 2; xCoordsElm2_host(2) = 4; yCoordsElm2_host(2) = 2; 
+    xCoordsElm2_host(0) = 2; yCoordsElm2_host(0) = 0; xCoordsElm2_host(1) = 4; yCoordsElm2_host(1) = 0; 
+
+    Kokkos::deep_copy(globalElm2, globalElm2_host);
+    Kokkos::deep_copy(xCoordsElm2, xCoordsElm2_host);
+    Kokkos::deep_copy(yCoordsElm2, yCoordsElm2_host);
 
     FiniteElement<FirstOrderQuad, TwoPointGaussLegendre> quad;
+
+    SECTION("Evaluate Jacobian") {
+        double result = 0;
+        double testxi = 0;
+        double testeta = 0;
+        Kokkos::parallel_reduce("test-jacobian", 1, KOKKOS_LAMBDA (const int i, double& out) {
+            out = quad.computeJacobianAt(testxi, testeta, xCoordsElm1, yCoordsElm1);
+        }, result);
+        CAPTURE(quad.shapeD(0, testxi, testeta, XI), quad.shapeD(0, testxi, testeta, ETA));
+        CAPTURE(quad.shapeD(1, testxi, testeta, XI), quad.shapeD(1, testxi, testeta, ETA));
+        CAPTURE(quad.shapeD(2, testxi, testeta, XI), quad.shapeD(2, testxi, testeta, ETA));
+        CAPTURE(quad.shapeD(3, testxi, testeta, XI), quad.shapeD(3, testxi, testeta, ETA));
+        REQUIRE_THAT(1, WithinRel(result));
+    }
 }
 
 TEST_CASE("Test local matrix flattening") {
