@@ -18,24 +18,31 @@ class FiniteElementDef : public ElmType, public IntRule {
     public:
         // Definitions must be here because of how templates work
 
-        // Functions for evaluating jacobian
-
         KOKKOS_FUNCTION
+        void quadPtInfo(std::size_t quad, double &xi, double &eta, double &wt) const {
+            xi = this->quadXi[quad];
+            eta = this->quadEta[quad];
+            wt = this->quadWt[quad];
+        }
+
+        // Functions for evaluating jacobian (ad-bc)
+
+        KOKKOS_FUNCTION // a in ad-bc
         double jacAddendDelxDelXi(std::size_t node, double xi, double eta, double xa) const {
             return this->shapeD(node, xi, eta, XI)*xa;
         }
 
-        KOKKOS_FUNCTION
+        KOKKOS_FUNCTION // d in ad-bc
         double jacAddendDelyDelEta(std::size_t node, double xi, double eta, double ya) const {
             return this->shapeD(node, xi, eta, ETA)*ya;
         }
 
-        KOKKOS_FUNCTION
+        KOKKOS_FUNCTION // b in ad-bc
         double jacAddendDelxDelEta(std::size_t node, double xi, double eta, double xa) const {
             return this->shapeD(node, xi, eta, ETA)*xa;
         }
 
-        KOKKOS_FUNCTION
+        KOKKOS_FUNCTION // c in ad-bc
         double jacAddendDelyDelXi(std::size_t node, double xi, double eta, double ya) const {
             return this->shapeD(node, xi, eta, XI)*ya;
         }
@@ -60,11 +67,6 @@ class FiniteElementDef : public ElmType, public IntRule {
             double out = this->shapeD(subA, xi, eta, XI)*this->shapeD(subB, xi, eta, XI)
                             +this->shape(subA, xi, eta, ETA)*this->shapeD(subB, xi, eta, ETA);
             return out/jac;
-        }
-
-        KOKKOS_FUNCTION
-        double stiffnessQuadEval(std::size_t subA, std::size_t subB, std::size_t quadPt, double jac) {
-            return this->quadWt[quadPt] * stiffnessIntegrand(subA, subB, this->quadXi[quadPt], this->quadEta[quadPt], jac);
         }
 
         KOKKOS_FUNCTION

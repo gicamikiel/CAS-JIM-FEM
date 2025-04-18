@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <Kokkos_Core.hpp>
 #include <cmath>
 
@@ -11,7 +12,7 @@ using namespace Catch::Matchers;
 typedef FiniteElementDef<FirstOrderQuad, TwoByTwoGaussLegendre> Quad;
 typedef FiniteElementDef<FirstOrderTri, TwoByTwoGaussLegendre> Tri;
 
-TEST_CASE("Test on handwritten mesh") {
+TEST_CASE("Tests on handwritten mesh") {
     /*
     DOF indices
     5--4--3
@@ -37,6 +38,7 @@ TEST_CASE("Test on handwritten mesh") {
     Kokkos::deep_copy(xCoordsElm1, xCoordsElm1_host);
     Kokkos::deep_copy(yCoordsElm1, yCoordsElm1_host);
 
+    /*
     Kokkos::View<int*> globalElm2("global_elm2_test", numNodes);
     Kokkos::View<double*> xCoordsElm2("xcoord_elm2_test", numNodes);
     Kokkos::View<double*> yCoordsElm2("ycoord_elm2_test", numNodes);
@@ -54,24 +56,57 @@ TEST_CASE("Test on handwritten mesh") {
     Kokkos::deep_copy(globalElm2, globalElm2_host);
     Kokkos::deep_copy(xCoordsElm2, xCoordsElm2_host);
     Kokkos::deep_copy(yCoordsElm2, yCoordsElm2_host);
+    */
 
     Quad quad;
 
-    /*
-    SECTION("Evaluate Jacobian") {
-        double result = 0;
+    SECTION("Test Jacobian at one point") {
         double testxi = 0;
         double testeta = 0;
-        Kokkos::parallel_reduce("test-jacobian", 1, KOKKOS_LAMBDA (const int i, double& out) {
-            out = quad.computeJacobianAt(testxi, testeta, xCoordsElm1, yCoordsElm1);
-        }, result);
-        CAPTURE(quad.shapeD(0, testxi, testeta, XI), quad.shapeD(0, testxi, testeta, ETA));
-        CAPTURE(quad.shapeD(1, testxi, testeta, XI), quad.shapeD(1, testxi, testeta, ETA));
-        CAPTURE(quad.shapeD(2, testxi, testeta, XI), quad.shapeD(2, testxi, testeta, ETA));
-        CAPTURE(quad.shapeD(3, testxi, testeta, XI), quad.shapeD(3, testxi, testeta, ETA));
-        REQUIRE_THAT(1, WithinRel(result));
+
+        double a = 0;
+        double d = 0;
+        double b = 0;
+        double c = 0;
+
+        for(int i=0; i<4; i++) {
+            a += quad.jacAddendDelxDelXi(i, testxi, testeta, xCoordsElm1_host(i));
+            d += quad.jacAddendDelyDelEta(i, testxi, testeta, yCoordsElm1_host(i));
+            b += quad.jacAddendDelxDelEta(i, testxi, testeta, xCoordsElm1_host(i));
+            c += quad.jacAddendDelyDelXi(i, testxi, testeta, yCoordsElm1_host(i));
+        }
+        REQUIRE_THAT(1, WithinRel(a*d-b*c));
     }
-    */
+
+    Kokkos::View<double*[4]> jacobianDerivatives("jacobian_at_quad_pts_test", quad.numQuad);
+    auto derivativesCheck = Kokkos::create_mirror_view(jacobianDerivatives);
+    Kokkos::parallel_for("jacobianTestEval", quad.jacAddendEvalsN(), KOKKOS_LAMBDA (const int i) {
+        std::size_t node;
+        std::size_t quadPt;
+        std::size_t derivative;
+        quad.unwrapAddendEvalsN(i, node, quadPt, derivative);
+        double xi;
+        double eta;
+        double wt;
+        quad.quadPtInfo(quadPt, xi, eta, wt);
+        double addend = 0;
+        switch(derivative) {
+            case 0: addend = quad.jacAddendDelxDelXi(node, xi, eta, xCoordsElm1(node)); break; // takes xa, a in ad-bc
+            case 1: addend = quad.jacAddendDelyDelEta(node, xi, eta, yCoordsElm1(node)); break; // takes ya, d in ad-bc
+            case 2: addend = quad.jacAddendDelxDelEta(node, xi, eta, xCoordsElm1(node)); break; // takes xa, b in ad-bc
+            case 3: addend = quad.jacAddendDelyDelXi(node, xi, eta, yCoordsElm1(node)); break; // takes ya, c in ad-bc
+        }
+        printf("%d: node=%d quad=%d derivative=%d addend=%.4f\n", i, (unsigned int)node, (unsigned int)quadPt, (unsigned int)derivative, addend);
+        Kokkos::atomic_add(&jacobianDerivatives(quadPt, derivative), addend);
+    });
+    Kokkos::deep_copy(derivativesCheck, jacobianDerivatives);
+
+    SECTION("Test Jacobian at element defined quadrature points") {
+        int i = GENERATE(0, 1, 2, 3);
+        double jacobian = derivativesCheck(i,0)*derivativesCheck(i,1)-derivativesCheck(i,2)*derivativesCheck(i,3);
+        CAPTURE(i, derivativesCheck(i,0), derivativesCheck(i,1), derivativesCheck(i,2), derivativesCheck(i,3));
+        REQUIRE_THAT(1, WithinRel(jacobian));
+    }
 }
 
 TEST_CASE("Check local matrix flattening") {
