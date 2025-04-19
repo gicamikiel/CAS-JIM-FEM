@@ -61,6 +61,19 @@ class FiniteElementDef : public ElmType, public IntRule {
             derivatve = ((i / this->numNodes) / this->numQuad) % 4;
         }
 
+        // Functions for evaluating forcing vector
+        KOKKOS_FUNCTION
+        std::size_t forcingTotalN() const {
+            // local stiffness matrix is symmetric so we only need to compute some of it
+            // numPoints + numPoints-1 + numPoints-2 + ... + 1
+            return this->numNodes*this->numQuad;
+        }
+
+        void unwrapForcingN(std::size_t i, std::size_t &node, std::size_t &quadPt) const {
+            quadPt = i % this->numQuad;
+            node = i / this->numQuad;
+        }
+
         // Functions for evaluating stiffness matrix
         KOKKOS_FUNCTION
         double stiffnessIntegrand(std::size_t subA, std::size_t subB, double xi, double eta, double jac) const {

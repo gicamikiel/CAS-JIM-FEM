@@ -42,8 +42,6 @@ void assembleK(Kokkos::View<double*> kappa, Kokkos::View<std::size_t*> nodeTags,
                 case 1: addend = e.jacAddendDelyDelEta(node, xi, eta, nodeCoords(coordIdx, 1)); break; // takes ya, d in ad-bc
                 case 2: addend = e.jacAddendDelxDelEta(node, xi, eta, nodeCoords(coordIdx, 0)); break; // takes xa, b in ad-bc
                 case 3: addend = e.jacAddendDelyDelXi(node, xi, eta, nodeCoords(coordIdx, 1)); break; // takes ya, c in ad-bc
-
-                // case 0: addend = quad.jacAddendDelxDelXi(node, xi, eta, xCoordsElm1(node)); break; // takes xa, a in ad-bc
             }
             Kokkos::atomic_add(&derivatives(quadPt, derivative), addend);
         });
@@ -60,7 +58,7 @@ void assembleK(Kokkos::View<double*> kappa, Kokkos::View<std::size_t*> nodeTags,
             double wt;
             e.quadPtInfo(quadPt, xi, eta, wt);
 
-            double jacobian = derivatives(i,0)*derivatives(i,1)-derivatives(i,2)*derivatives(i,3);
+            double jacobian = derivatives(quadPt,0)*derivatives(quadPt,1)-derivatives(quadPt,2)*derivatives(quadPt,3);
             double eval = wt*elmKappa*e.stiffnessIntegrand(localRow, localCol, xi, eta, jacobian);
             
             std::size_t globalRow = conn(elmIdx, localRow)-1;
@@ -69,6 +67,62 @@ void assembleK(Kokkos::View<double*> kappa, Kokkos::View<std::size_t*> nodeTags,
             if(globalRow != globalCol) {
                 Kokkos::atomic_add(&stiffness(globalCol, globalRow), eval);
             }
+        });
+    });
+}
+
+template<typename ElmDef>
+void assembleF(Kokkos::View<double*> elmForces, Kokkos::View<std::size_t*> nodeTags, Kokkos::View<double*[2]> nodeCoords, 
+    std::size_t numElm, Kokkos::View<double**> conn, Kokkos::View<double*> forcing) {
+
+    ElmDef e;
+    
+    int scratchSize = ScratchViewType::shmem_size(e.numQuad);
+    Kokkos::parallel_for("elements", team_policy(numElm, Kokkos::AUTO).set_scratch_size(0, Kokkos::PerTeam(scratchSize)),
+                            KOKKOS_LAMBDA(const member_type &teamMember) {
+        const std::size_t elmIdx = teamMember.league_rank();
+        ScratchViewType derivatives(e.numQuad);
+
+        double elmForce = elmForces(elmIdx);
+
+        Kokkos::parallel_for("jacobianEval", Kokkos::TeamThreadRange(teamMember, e.jacAddendEvalsN()), [&] (const int i) {
+            std::size_t node;
+            std::size_t quadPt;
+            std::size_t derivative;
+            e.unwrapAddendEvalsN(i, node, quadPt, derivative);
+            double xi;
+            double eta;
+            double wt;
+            e.quadPtInfo(quadPt, xi, eta, wt);
+
+            double addend = 0;
+            std::size_t coordIdx = conn(elmIdx, node)-1;
+            switch(derivative) {
+                case 0: addend = e.jacAddendDelxDelXi(node, xi, eta, nodeCoords(coordIdx, 0)); break; // takes xa, a in ad-bc
+                case 1: addend = e.jacAddendDelyDelEta(node, xi, eta, nodeCoords(coordIdx, 1)); break; // takes ya, d in ad-bc
+                case 2: addend = e.jacAddendDelxDelEta(node, xi, eta, nodeCoords(coordIdx, 0)); break; // takes xa, b in ad-bc
+                case 3: addend = e.jacAddendDelyDelXi(node, xi, eta, nodeCoords(coordIdx, 1)); break; // takes ya, c in ad-bc
+            }
+            Kokkos::atomic_add(&derivatives(quadPt, derivative), addend);
+        });
+
+        teamMember.team_barrier();
+
+        Kokkos::parallel_for("fAsy", Kokkos::TeamThreadRange(teamMember, e.forcingTotalN()), [&] (const int i) {
+            std::size_t node;
+            std::size_t quadPt;
+            e.unwrapForcingN(i, node, quadPt);
+
+            double xi;
+            double eta;
+            double wt;
+            e.quadPtInfo(i, xi, eta, wt);
+
+            double jacobian = derivatives(quadPt,0)*derivatives(quadPt,1)-derivatives(quadPt,2)*derivatives(quadPt,3);
+            double eval = elmForce*e.shape(node, xi, eta)*wt;
+            
+            std::size_t globalIdx = conn(elmIdx, node)-1;
+            Kokkos::atomic_add(&forcing(globalIdx), eval);
         });
     });
 }
