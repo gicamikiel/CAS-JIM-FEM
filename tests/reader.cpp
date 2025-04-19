@@ -1,17 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include "readGmsh.hpp"
-#include <Kokkos_Core.hpp>
 
-TEST_CASE("Number of nodes should be 453") {
-    Kokkos::initialize();
-    {
-        std::string path = "../../dataset/bun_zipper_res4";
-        GmshDataKokkos data = readGmsh(path);
+TEST_CASE("Just checking") {
+    std::string path = "../../dataset/bun_zipper_res4";
+    GmshDataKokkos data = readGmsh(path);
 
-        // Check the number of nodes
-        REQUIRE(data.nodeTags.extent(0) == 453);
-        REQUIRE(data.nodeCoords.extent(0) == 453); // Should match nodeTags
-        REQUIRE(data.nodeCoords.extent(1) == 3);   // Each node has x, y, z
-    }
-    Kokkos::finalize();
+    // Check the number of nodes
+    REQUIRE(data.nodeTags.extent(0) == 453);
+    REQUIRE(data.nodeCoords.extent(0) == 453); // Should match nodeTags
+    REQUIRE(data.nodeCoords.extent(1) == 3);   // Each node has x, y, z
+
+    REQUIRE(true);
 }
