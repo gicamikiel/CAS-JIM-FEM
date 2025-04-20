@@ -21,11 +21,11 @@ void assembleK(Kokkos::View<double*> kappa, Kokkos::View<std::size_t*> nodeTags,
     Kokkos::parallel_for("elements", team_policy(numElm, Kokkos::AUTO).set_scratch_size(0, Kokkos::PerTeam(scratchSize)),
                             KOKKOS_LAMBDA(const member_type &teamMember) {
         const std::size_t elmIdx = teamMember.league_rank();
-        ScratchViewType derivatives(e.numQuad);
+        ScratchViewType derivatives(teamMember.team_scratch(0), e.numQuad);
 
         double elmKappa = kappa(elmIdx);
 
-        Kokkos::parallel_for("jacobianEval", Kokkos::TeamThreadRange(teamMember, e.jacAddendEvalsN()), [&] (const int i) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, e.jacAddendEvalsN()), [&] (const int i) {
             std::size_t node;
             std::size_t quadPt;
             std::size_t derivative;
@@ -48,7 +48,7 @@ void assembleK(Kokkos::View<double*> kappa, Kokkos::View<std::size_t*> nodeTags,
 
         teamMember.team_barrier();
 
-        Kokkos::parallel_for("stiffnessAsy", Kokkos::TeamThreadRange(teamMember, e.stiffnessEvalsN()), [&] (const int i) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, e.stiffnessEvalsN()), [&] (const int i) {
             std::size_t quadPt;
             std::size_t localRow;
             std::size_t localCol;
@@ -81,11 +81,11 @@ void assembleF(Kokkos::View<double*> elmForces, Kokkos::View<std::size_t*> nodeT
     Kokkos::parallel_for("elements", team_policy(numElm, Kokkos::AUTO).set_scratch_size(0, Kokkos::PerTeam(scratchSize)),
                             KOKKOS_LAMBDA(const member_type &teamMember) {
         const std::size_t elmIdx = teamMember.league_rank();
-        ScratchViewType derivatives(e.numQuad);
+        ScratchViewType derivatives(teamMember.team_scratch(0), e.numQuad);
 
         double elmForce = elmForces(elmIdx);
 
-        Kokkos::parallel_for("jacobianEval", Kokkos::TeamThreadRange(teamMember, e.jacAddendEvalsN()), [&] (const int i) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, e.jacAddendEvalsN()), [&] (const int i) {
             std::size_t node;
             std::size_t quadPt;
             std::size_t derivative;
@@ -108,7 +108,7 @@ void assembleF(Kokkos::View<double*> elmForces, Kokkos::View<std::size_t*> nodeT
 
         teamMember.team_barrier();
 
-        Kokkos::parallel_for("fAsy", Kokkos::TeamThreadRange(teamMember, e.forcingTotalN()), [&] (const int i) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, e.forcingTotalN()), [&] (const int i) {
             std::size_t node;
             std::size_t quadPt;
             e.unwrapForcingN(i, node, quadPt);
@@ -125,6 +125,36 @@ void assembleF(Kokkos::View<double*> elmForces, Kokkos::View<std::size_t*> nodeT
             Kokkos::atomic_add(&forcing(globalIdx), eval);
         });
     });
+}
+
+template<typename ViewType>
+std::string viewMatrixString(ViewType &view, std::size_t rows, std::size_t cols, std::string format = "%02.4f") {
+    std::string out("");
+    for(int row = 0; row < rows; row++) {
+        for(int col = 0; col < cols; col++) {
+            int sz = std::snprintf(nullptr, 0, format.data(), view(row, col));
+            std::vector<char> buf(sz + 1);
+            sprintf(buf.data(), format.data(), view(row, col));
+            out.append(buf.data());
+            out.append(" ");
+        }
+        out.append("\n");
+    }
+    return out;
+}
+
+template<typename ViewType>
+std::string viewVectorString(ViewType view, std::size_t length, std::string format = "%02.4f") {
+    std::string out("");
+    for(int i = 0; i < length; i++) {
+        int sz = std::snprintf(nullptr, 0, format.data(), view(i));
+        std::vector<char> buf(sz + 1);
+        sprintf(buf.data(), format.data(), view(i));
+        out.append(buf.data());
+        out.append(" ");
+    }
+    out.append("\n");
+    return out;
 }
 
 #endif

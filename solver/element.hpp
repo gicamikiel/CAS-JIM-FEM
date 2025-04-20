@@ -68,7 +68,8 @@ class FiniteElementDef : public ElmType, public IntRule {
             // numPoints + numPoints-1 + numPoints-2 + ... + 1
             return this->numNodes*this->numQuad;
         }
-
+        
+        KOKKOS_FUNCTION
         void unwrapForcingN(std::size_t i, std::size_t &node, std::size_t &quadPt) const {
             quadPt = i % this->numQuad;
             node = i / this->numQuad;
@@ -78,7 +79,7 @@ class FiniteElementDef : public ElmType, public IntRule {
         KOKKOS_FUNCTION
         double stiffnessIntegrand(std::size_t subA, std::size_t subB, double xi, double eta, double jac) const {
             double out = this->shapeD(subA, xi, eta, XI)*this->shapeD(subB, xi, eta, XI)
-                            +this->shape(subA, xi, eta, ETA)*this->shapeD(subB, xi, eta, ETA);
+                            +this->shapeD(subA, xi, eta, ETA)*this->shapeD(subB, xi, eta, ETA);
             return out/jac;
         }
 

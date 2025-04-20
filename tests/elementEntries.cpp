@@ -6,19 +6,14 @@
 
 #include <elementsFirstOrder.hpp>
 #include <readGmsh.hpp>
+#include <assembler.hpp>
 
 using namespace Catch::Matchers;
 
 typedef FiniteElementDef<FirstOrderQuad, TwoByTwoGaussLegendre> Quad;
 typedef FiniteElementDef<FirstOrderTri, ThreePointTriangle> Tri;
 
-TEST_CASE("Tests on handwritten mesh") {
-    /*
-    DOF indices
-    5--4--3
-    |  |  |
-    0--1--2
-    */
+TEST_CASE("Tests on handwritten element") {
     int numNodes = 4;
     Kokkos::View<int*> globalElm1("global_elm1_test", numNodes);
     Kokkos::View<double*> xCoordsElm1("xcoord_elm1_test", numNodes);
@@ -37,26 +32,6 @@ TEST_CASE("Tests on handwritten mesh") {
     Kokkos::deep_copy(globalElm1, globalElm1_host);
     Kokkos::deep_copy(xCoordsElm1, xCoordsElm1_host);
     Kokkos::deep_copy(yCoordsElm1, yCoordsElm1_host);
-
-    /*
-    Kokkos::View<int*> globalElm2("global_elm2_test", numNodes);
-    Kokkos::View<double*> xCoordsElm2("xcoord_elm2_test", numNodes);
-    Kokkos::View<double*> yCoordsElm2("ycoord_elm2_test", numNodes);
-
-    auto globalElm2_host = Kokkos::create_mirror_view(globalElm2);
-    auto xCoordsElm2_host = Kokkos::create_mirror_view(xCoordsElm2);
-    auto yCoordsElm2_host =Kokkos::create_mirror_view(yCoordsElm2);
-
-    globalElm2_host(3) = 4; globalElm2_host(2) = 3;
-    globalElm2_host(0) = 1; globalElm2_host(1) = 2;
-
-    xCoordsElm2_host(3) = 2; yCoordsElm2_host(3) = 2; xCoordsElm2_host(2) = 4; yCoordsElm2_host(2) = 2; 
-    xCoordsElm2_host(0) = 2; yCoordsElm2_host(0) = 0; xCoordsElm2_host(1) = 4; yCoordsElm2_host(1) = 0; 
-
-    Kokkos::deep_copy(globalElm2, globalElm2_host);
-    Kokkos::deep_copy(xCoordsElm2, xCoordsElm2_host);
-    Kokkos::deep_copy(yCoordsElm2, yCoordsElm2_host);
-    */
 
     Quad quad;
 
@@ -106,6 +81,142 @@ TEST_CASE("Tests on handwritten mesh") {
         double jacobian = derivativesCheck(i,0)*derivativesCheck(i,1)-derivativesCheck(i,2)*derivativesCheck(i,3);
         CAPTURE(i, derivativesCheck(i,0), derivativesCheck(i,1), derivativesCheck(i,2), derivativesCheck(i,3));
         REQUIRE_THAT(1, WithinRel(jacobian));
+    }
+}
+
+TEST_CASE("Assembler tests on handwritten quad mesh") {
+    /*
+    DOF indices
+    6--5----4
+    |  |   /
+    1--2--3
+    */
+
+    // Kokkos::View<int*> globalElm1("global_elm1_test", numNodes);
+    Quad quad;
+    std::size_t numElm = 2;
+    std::size_t numNodes = 6;
+
+    Kokkos::View<std::size_t*> nodeTags("nodeTags_test", numNodes);
+    Kokkos::View<double*[2]> nodeCoords("nodeCoords_test", numNodes);
+    Kokkos::View<double**> conn("conn_test", numElm, quad.numNodes);
+
+    SECTION("Check stiffness matrix") {
+        Kokkos::View<double*> kappa("kappa_test", numElm);
+        Kokkos::View<double**> stiffness("stiffness_test", numNodes, numNodes);
+
+        double constKappa = 1;
+        Kokkos::parallel_for("init_kappa_test", numElm, KOKKOS_LAMBDA (const int i) { kappa(i) = constKappa; });
+        Kokkos::parallel_for("init_nodeTags_test", numNodes, KOKKOS_LAMBDA (const int i) { nodeTags(i) = i+1; });
+        Kokkos::parallel_for("init_nodeTags_test", 1, KOKKOS_LAMBDA (const int i) {
+            nodeCoords(0, 0) = 0; nodeCoords(0, 1) = 0; // 1
+            nodeCoords(1, 0) = 2; nodeCoords(1, 1) = 0; // 2
+            nodeCoords(2, 0) = 4; nodeCoords(2, 1) = 0; // 3
+            nodeCoords(3, 0) = 5; nodeCoords(3, 1) = 2; // 4
+            nodeCoords(4, 0) = 2; nodeCoords(4, 1) = 2; // 5
+            nodeCoords(5, 0) = 0; nodeCoords(5, 1) = 2; // 6
+            conn(0, 0) = 1; conn(0, 1) = 2; conn(0, 2) = 5; conn(0, 3) = 6;
+            conn(1, 0) = 2; conn(1, 1) = 3; conn(1, 2) = 4; conn(1, 3) = 5;
+        });
+        
+        assembleK<Quad>(kappa, nodeTags, nodeCoords, numElm, conn, stiffness);
+
+        auto stiffness_check = Kokkos::create_mirror_view(stiffness);
+        Kokkos::deep_copy(stiffness_check, stiffness);
+
+        INFO(viewMatrixString(stiffness_check, 6, 6));
+
+        REQUIRE_THAT(0, !WithinRel(stiffness_check(0, 0))); // contribution by elm 1 should be nonzero
+        REQUIRE_THAT(0, !WithinRel(stiffness_check(4, 4))); // contribution by elm 2 should be nonzero
+
+        SECTION("Check if stiffness matrix is symmetric") {
+            int i = GENERATE(0,1,2,3,4,5);
+            int j = GENERATE(0,1,2,3,4,5);
+            INFO("Checking " << i << ", " << j);
+            REQUIRE_THAT(stiffness_check(j, i), WithinRel(stiffness_check(i, j)));
+        }
+    }
+
+    SECTION("Check loading vector") {
+        Kokkos::View<double*> forceOnElm("forceOnElm_test", numElm);
+        Kokkos::View<double*> forcingVector("forcingVector_test", numNodes);
+    
+        double constForce = 1;
+        Kokkos::parallel_for("init_forceOnElm_test", numElm, KOKKOS_LAMBDA (const int i) { forceOnElm(i) = constForce; });
+
+        assembleF<Quad>(forceOnElm, nodeTags, nodeCoords, numElm, conn, forcingVector);
+
+        auto forcingVector_check = Kokkos::create_mirror_view(forcingVector);
+        Kokkos::deep_copy(forcingVector_check, forcingVector);
+
+        REQUIRE_THAT(0, !WithinRel(forcingVector_check(0)));
+    }
+}
+
+TEST_CASE("Assembler tests on handwritten tri mesh") {
+    /*
+    DOF indices
+    4----3
+    | \ /
+    1--2
+    */
+
+    // Kokkos::View<int*> globalElm1("global_elm1_test", numNodes);
+    Tri tri;
+    std::size_t numElm = 2;
+    std::size_t numNodes = 4;
+
+    Kokkos::View<std::size_t*> nodeTags("nodeTags_test", numNodes);
+    Kokkos::View<double*[2]> nodeCoords("nodeCoords_test", numNodes);
+    Kokkos::View<double**> conn("conn_test", numElm, tri.numNodes);
+
+    SECTION("Check stiffness matrix") {
+        Kokkos::View<double*> kappa("kappa_test", numElm);
+        Kokkos::View<double**> stiffness("stiffness_test", numNodes, numNodes);
+
+        double constKappa = 1;
+        Kokkos::parallel_for("init_kappa_test", numElm, KOKKOS_LAMBDA (const int i) { kappa(i) = constKappa; });
+        Kokkos::parallel_for("init_nodeTags_test", numNodes, KOKKOS_LAMBDA (const int i) { nodeTags(i) = i+1; });
+        Kokkos::parallel_for("init_nodeTags_test", 1, KOKKOS_LAMBDA (const int i) {
+            nodeCoords(0, 0) = 0; nodeCoords(0, 1) = 0; // 1
+            nodeCoords(1, 0) = 2; nodeCoords(1, 1) = 0; // 2
+            nodeCoords(2, 0) = 3; nodeCoords(2, 1) = 2; // 3
+            nodeCoords(3, 0) = 0; nodeCoords(3, 1) = 2; // 4
+            conn(0, 0) = 1; conn(0, 1) = 2; conn(0, 2) = 4;
+            conn(1, 0) = 2; conn(1, 1) = 3; conn(1, 2) = 4;
+        });
+        
+        assembleK<Tri>(kappa, nodeTags, nodeCoords, numElm, conn, stiffness);
+
+        auto stiffness_check = Kokkos::create_mirror_view(stiffness);
+        Kokkos::deep_copy(stiffness_check, stiffness);
+
+        INFO(viewMatrixString(stiffness_check, 4, 4));
+
+        REQUIRE_THAT(0, !WithinRel(stiffness_check(0, 0))); // contribution by elm 1 should be nonzero
+        REQUIRE_THAT(0, !WithinRel(stiffness_check(2, 2))); // contribution by elm 2 should be nonzero
+
+        SECTION("Check if stiffness matrix is symmetric") {
+            int i = GENERATE(0,1,2,3);
+            int j = GENERATE(0,1,2,3);
+            INFO("Checking " << i << ", " << j);
+            REQUIRE_THAT(stiffness_check(j, i), WithinRel(stiffness_check(i, j)));
+        }
+    }
+
+    SECTION("Check loading vector") {
+        Kokkos::View<double*> forceOnElm("forceOnElm_test", numElm);
+        Kokkos::View<double*> forcingVector("forcingVector_test", numNodes);
+    
+        double constForce = 1;
+        Kokkos::parallel_for("init_forceOnElm_test", numElm, KOKKOS_LAMBDA (const int i) { forceOnElm(i) = constForce; });
+
+        assembleF<Tri>(forceOnElm, nodeTags, nodeCoords, numElm, conn, forcingVector);
+
+        auto forcingVector_check = Kokkos::create_mirror_view(forcingVector);
+        Kokkos::deep_copy(forcingVector_check, forcingVector);
+
+        REQUIRE_THAT(0, !WithinRel(forcingVector_check(0)));
     }
 }
 
