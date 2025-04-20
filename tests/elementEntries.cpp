@@ -71,7 +71,7 @@ TEST_CASE("Tests on handwritten element") {
             case 2: addend = quad.jacAddendDelxDelEta(node, xi, eta, xCoordsElm1(node)); break; // takes xa, b in ad-bc
             case 3: addend = quad.jacAddendDelyDelXi(node, xi, eta, yCoordsElm1(node)); break; // takes ya, c in ad-bc
         }
-        printf("%d: node=%d quad=%d derivative=%d addend=%.4f\n", i, (unsigned int)node, (unsigned int)quadPt, (unsigned int)derivative, addend);
+        //printf("%d: node=%d quad=%d derivative=%d addend=%.4f\n", i, (unsigned int)node, (unsigned int)quadPt, (unsigned int)derivative, addend);
         Kokkos::atomic_add(&jacobianDerivatives(quadPt, derivative), addend);
     });
     Kokkos::deep_copy(derivativesCheck, jacobianDerivatives);
@@ -79,7 +79,6 @@ TEST_CASE("Tests on handwritten element") {
     SECTION("Test Jacobian at element defined quadrature points") {
         int i = GENERATE(0, 1, 2, 3);
         double jacobian = derivativesCheck(i,0)*derivativesCheck(i,1)-derivativesCheck(i,2)*derivativesCheck(i,3);
-        CAPTURE(i, derivativesCheck(i,0), derivativesCheck(i,1), derivativesCheck(i,2), derivativesCheck(i,3));
         REQUIRE_THAT(1, WithinRel(jacobian));
     }
 }
@@ -149,6 +148,8 @@ TEST_CASE("Assembler tests on handwritten quad mesh") {
         auto forcingVector_check = Kokkos::create_mirror_view(forcingVector);
         Kokkos::deep_copy(forcingVector_check, forcingVector);
 
+        INFO(viewVectorString(forcingVector_check, 6));
+
         REQUIRE_THAT(0, !WithinRel(forcingVector_check(0)));
     }
 }
@@ -215,6 +216,8 @@ TEST_CASE("Assembler tests on handwritten tri mesh") {
 
         auto forcingVector_check = Kokkos::create_mirror_view(forcingVector);
         Kokkos::deep_copy(forcingVector_check, forcingVector);
+
+        INFO(viewVectorString(forcingVector_check, 4));
 
         REQUIRE_THAT(0, !WithinRel(forcingVector_check(0)));
     }
