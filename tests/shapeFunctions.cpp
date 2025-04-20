@@ -9,7 +9,7 @@
 using namespace Catch::Matchers;
 
 typedef FiniteElementDef<FirstOrderQuad, TwoByTwoGaussLegendre> Quad;
-typedef FiniteElementDef<FirstOrderTri, TwoByTwoGaussLegendre> Tri;
+typedef FiniteElementDef<FirstOrderTri, ThreePointTriangle> Tri;
 
 #ifdef KOKKOS_ENABLE_CUDA
 TEST_CASE("Test if class members are callable from the GPU") {

@@ -10,7 +10,7 @@
 using namespace Catch::Matchers;
 
 typedef FiniteElementDef<FirstOrderQuad, TwoByTwoGaussLegendre> Quad;
-typedef FiniteElementDef<FirstOrderTri, TwoByTwoGaussLegendre> Tri;
+typedef FiniteElementDef<FirstOrderTri, ThreePointTriangle> Tri;
 
 TEST_CASE("Tests on handwritten mesh") {
     /*
