@@ -30,6 +30,8 @@ To compile without configuring, run `cmake --build build -j$(nproc)`.
 
 ### Configure/Build (manual)
 
+__Attention: To use with CUDA you must compile Kokkos with `Kokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE` set to `ON`__ (`-DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON`)
+
 Use the following example CMake command to configure. Use if you have Kokkos and Catch2 already installed on your system.
 
 ```
