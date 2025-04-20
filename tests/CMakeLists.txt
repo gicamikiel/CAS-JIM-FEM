@@ -1,4 +1,4 @@
-add_executable(unit_tests unitTests.cpp linalg.cpp reader.cpp shapeFunctions.cpp elementEntries.cpp parallelExperiments.cpp)
+add_executable(unit_tests unitTests.cpp linalg.cpp reader.cpp kappa.cpp shapeFunctions.cpp elementEntries.cpp parallelExperiments.cpp)
 
 target_link_libraries(unit_tests PRIVATE Catch2::Catch2)
 target_link_libraries(unit_tests PRIVATE solver)

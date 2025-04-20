@@ -1,4 +1,4 @@
-add_library(solver readGmsh.cpp elementsFirstOrder.cpp)
+add_library(solver readGmsh.cpp elementsFirstOrder.cpp readKappa.cpp)
 
 # Include current dir for solver headers
 target_include_directories(solver PUBLIC ${CMAKE_CURRENT_LIST_DIR})
