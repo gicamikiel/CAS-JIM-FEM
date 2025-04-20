@@ -1,4 +1,5 @@
 #include "readGmsh.hpp"
+#include "assembler.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
