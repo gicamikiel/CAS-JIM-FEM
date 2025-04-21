@@ -19,6 +19,30 @@ CSRMatrix::CSRMatrix(const std::vector<std::vector<double>>& matrix) {
     }
 }
 
+CSRMatrix::CSRMatrix(const std::vector<std::pair<int, int>>& nonzero_indices,int num_rows,int num_cols) 
+: num_rows_(static_cast<std::size_t>(num_rows)), num_cols_(static_cast<std::size_t>(num_cols)) {
+    num_nz_ = nonzero_indices.size();
+
+    col_indices_host.resize(num_nz_);
+    values_host.resize(num_nz_, 1.0);
+
+    std::vector<std::pair<int,int>> idxs = nonzero_indices;
+    std::sort(idxs.begin(), idxs.end());
+
+    std::vector<std::size_t> row_counts(num_rows_, 0);
+    for (std::size_t i = 0; i < num_nz_; ++i) {
+        auto [r, c] = idxs[i];
+        row_counts[static_cast<std::size_t>(r)]++;
+        col_indices_host[i] = static_cast<std::size_t>(c);
+    }
+    row_ptr_host.resize(num_rows_ + 1);
+    row_ptr_host[0] = 0;
+    for (std::size_t r = 0; r < num_rows_; ++r) {
+        row_ptr_host[r+1] = row_ptr_host[r] + row_counts[r];
+    }
+}
+
+
 
 void CSRMatrix::copy_to_device(){
     row_ptr_ = Kokkos::View<int*>("row_ptr", row_ptr_host.size());

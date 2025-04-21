@@ -39,14 +39,20 @@ TEST_CASE("CSRMatrix creation from sparse matrix", "[CSRMatrix]") {
     std::vector<int> expectedColIndices = {4, 0, 3, 2, 1, 4};
     std::vector<double> expectedValues  = {1.0, 5.0, 8.0, 3.0, 6.0, 1.0};
 
-    // Compare CSRMatrix's host arrays with the expected values.
     auto mirror_rowptr = Kokkos::create_mirror_view(csr.get_rowptr_device());
     auto mirror_colind = Kokkos::create_mirror_view(csr.get_colind_device());
     auto mirror_vals = Kokkos::create_mirror_view(csr.get_vals_device());
+    Kokkos::deep_copy(mirror_rowptr, csr.get_rowptr_device());
+    Kokkos::deep_copy(mirror_colind, csr.get_colind_device());
+    Kokkos::deep_copy(mirror_vals, csr.get_vals_device());
 
-    REQUIRE(csr.get_rowptr_host() == expectedRowPtr);
-    REQUIRE(csr.get_colind_host() == expectedColIndices);
-    REQUIRE(csr.get_vals_host() == expectedValues);
+    for (std::size_t i = 0; i < 6; ++i) {
+        REQUIRE(mirror_colind(i) == expectedColIndices[i]);
+        REQUIRE(mirror_vals(i) == expectedValues[i]);
+        if (i != 5){
+            REQUIRE(mirror_rowptr(i) == expectedRowPtr[i]);
+        }
+    }
 }
 
 TEST_CASE("CSRMatrix creation from nonzero indices", "[CSRMatrix]") {
@@ -70,14 +76,47 @@ TEST_CASE("CSRMatrix creation from nonzero indices", "[CSRMatrix]") {
     std::vector<int> expectedColIndices = {4, 0, 3, 2, 1, 4};
     std::vector<double> expectedValues  = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
-    // Compare CSRMatrix's host arrays with the expected values.
-    auto mirror_rowptr = Kokkos::create_mirror_view(csr.get_rowptr_device());
-    auto mirror_colind = Kokkos::create_mirror_view(csr.get_colind_device());
-    auto mirror_vals = Kokkos::create_mirror_view(csr.get_vals_device());
-
     REQUIRE(csr.get_rowptr_host() == expectedRowPtr);
     REQUIRE(csr.get_colind_host() == expectedColIndices);
     REQUIRE(csr.get_vals_host() == expectedValues);
+}
+
+TEST_CASE("CSRMatrix parallel add on device", "[CSRMatrix]") {
+    // Create a sample sparse matrix.
+    // Matrix layout:
+    // [ 0   0   0   0   1]
+    // [ 5   0   0   8   0]
+    // [ 0   0   3   0   0]
+    // [ 0   6   0   0   1]
+    std::vector<std::pair<int, int>> nz_indices = {
+        {0,4},
+        {1,0}, {1,3},
+        {2,2},
+        {3,1}, {3,4}
+    };
+
+    CSRMatrix csr(nz_indices,4,5);
+    csr.copy_to_device();
+    double test_val = 10;
+
+    Kokkos::parallel_for("add_vals", 4, KOKKOS_LAMBDA(const int i){
+        for (int j=0; j<5; ++j){
+            csr.add_val(i,j,test_val);
+        }
+    });
+    Kokkos::fence();
+
+    auto vals_mirror = Kokkos::create_mirror_view(csr.get_vals_device());
+    Kokkos::deep_copy(vals_mirror, csr.get_vals_device());
+    
+    std::vector<double> vals(vals_mirror.extent(0));
+    for (std::size_t k = 0; k < vals.size(); ++k) {
+        vals[k] = vals_mirror(k);
+    }
+
+    std::vector<double> expectedValues  = {11.0, 11.0, 11.0, 11.0, 11.0, 11.0};
+
+    REQUIRE(vals == expectedValues);
 }
 
 TEST_CASE("CSRMatrix update values on host before copy", "[CSRMatrix]") {
@@ -103,11 +142,6 @@ TEST_CASE("CSRMatrix update values on host before copy", "[CSRMatrix]") {
     std::vector<int> expectedRowPtr     = {0, 1, 3, 4, 6};
     std::vector<int> expectedColIndices = {4, 0, 3, 2, 1, 4};
     std::vector<double> expectedValues  = {1.0, 1.0, 1.0, 3.0, 1.0, 1.0};
-
-    // Compare CSRMatrix's host arrays with the expected values.
-    auto mirror_rowptr = Kokkos::create_mirror_view(csr.get_rowptr_device());
-    auto mirror_colind = Kokkos::create_mirror_view(csr.get_colind_device());
-    auto mirror_vals = Kokkos::create_mirror_view(csr.get_vals_device());
 
     REQUIRE(csr.get_rowptr_host() == expectedRowPtr);
     REQUIRE(csr.get_colind_host() == expectedColIndices);
